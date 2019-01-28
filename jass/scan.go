@@ -390,7 +390,7 @@ func findPossibleCells(game *Game, cells []Point) [][]Point {
 	return possCells
 }
 
-func ScanRowsCols(game *Game, fn GroupScanFunc, name string) int {
+func (scanner *Scanner) ScanRowsCols(fn GroupScanFunc, name string) int {
 	found := 0
 	cells := make([]Point, NR_MAX)
 
@@ -401,7 +401,7 @@ func ScanRowsCols(game *Game, fn GroupScanFunc, name string) int {
 			cells[i].x = i
 		}
 		Debug("Performing scan `%s' on row %d", name, j+1)
-		if fn(game, cells) > 0 {
+		if fn(scanner.game, cells) > 0 {
 			found++
 		}
 	}
@@ -413,7 +413,7 @@ func ScanRowsCols(game *Game, fn GroupScanFunc, name string) int {
 			cells[j].x = i
 		}
 		Debug("Performing scan `%s' on col %d", name, i+1)
-		if fn(game, cells) > 0 {
+		if fn(scanner.game, cells) > 0 {
 			found++
 		}
 	}
@@ -421,7 +421,7 @@ func ScanRowsCols(game *Game, fn GroupScanFunc, name string) int {
 	return found
 }
 
-func ScanAllGroups(game *Game, fn GroupScanFunc, name string) int {
+func (scanner *Scanner) ScanAllGroups(fn GroupScanFunc, name string) int {
 	found := 0
 
 	var tmpy, tmpx int
@@ -429,7 +429,7 @@ func ScanAllGroups(game *Game, fn GroupScanFunc, name string) int {
 
 	cells := make([]Point, NR_MAX)
 
-	found += ScanRowsCols(game, fn, name)
+	found += scanner.ScanRowsCols(fn, name)
 
 	// and boxes
 	boxes_y := Y / BoxY
@@ -449,7 +449,7 @@ func ScanAllGroups(game *Game, fn GroupScanFunc, name string) int {
 					n++
 				}
 			}
-			if fn(game, cells) > 0 {
+			if fn(scanner.game, cells) > 0 {
 				found++
 			}
 		}
@@ -458,106 +458,63 @@ func ScanAllGroups(game *Game, fn GroupScanFunc, name string) int {
 	return found
 }
 
-/*
-int
-scan_hidden_pairs_group(struct point cells[], int n_cells)
-{
-    int found = 0;
-    struct point *cell = cells;
-    void * voidptr = NULL;
-    num_t nr = 0, first = 0, second = 0, nr2, i;
-    struct ptr_array poss_cells[NR_MAX];
+func ScanHiddenPairsGroup(game *Game, cells []Point) int {
+	found := 0
+	var nr, first, second, nr2, i Num
 
-    if (NULL == cells || n_cells < 1)
-        return 0;
+	nCells := len(cells)
+	if nCells < 1 {
+		return 0
+	}
 
-    // initialize the poss_cells array
-    for (nr = 0; nr < NR_MAX; ++nr)
-    {
-        // poss_cells[nr].ptr = calloc(n_cells, sizeof(struct point *));
-        voidptr = calloc(n_cells, sizeof(struct point *));
-        // debug("poss_cells[%d].ptr %p", nr, voidptr);
-        poss_cells[nr].ptr = voidptr;
-        if (NULL == poss_cells[nr].ptr)
-            eprintf("calloc() failed:");
+	// - create a mapping for all numbers:
+	//   number => possible cells
+	possCells := findPossibleCells(game, cells)
 
-        poss_cells[nr].n = 0; // n means in this context the number of possible cells
-    }
+	// - if number has exactly two possible cells, store as candidate and go on
+	// - if another number has exactly two possible cells and the cells are the same
+	//   => hidden pair. eliminate all other candidates (if there are any) in these two cells
 
-    // must find exactly two cells that contain the same two candidates.
-    // The candidates must not appear anywhere else in the group.
+	for nr = 0; nr < NR_MAX-1; nr++ {
+		if len(possCells[nr]) == 2 {
+			first = nr + 1
+			// search if there's another number having the same possible cells
+			for nr2 = nr + 1; nr2 < NR_MAX; nr2++ {
+				if len(possCells[nr2]) == 2 {
+					same := true
+					second = nr2 + 1
+					// the cells are traversed in the same order
+					for slot := 0; slot < 2; slot++ {
+						// compare if the possible cells point to the same place
+						if !possCells[nr][slot].Equals(possCells[nr2][slot]) {
+							same = false
+							break
+						}
+					}
+					if same {
+						Debug("Hidden pair {%d, %d} found", first, second)
+						for slot := 0; slot < 2; slot++ {
+							cell := possCells[nr][slot]
+							// eliminate all other possibilities except the pair
+							for i = 0; i < NR_MAX; i++ {
+								if i+1 == first || i+1 == second {
+									continue
+								}
 
-    // - create a mapping for all numbers:
-    //   number => possible cells
-    find_possible_cells(cells, n_cells, poss_cells);
+								if game.poss.Set(Num(cell.y), Num(cell.x), i, false) {
+									Explain("Eliminating %d from (%d, %d)", i+1, cell.x+1, cell.y+1)
+									found++
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 
-    //
-    // - if number has exactly two possible cells, store as candidate and go on
-    // - if another number has exactly two possible cells and the cells are the same
-    //   => hidden pair. eliminate all other candidates (if there are any) in these two cells
-
-    for (nr = 0; nr < NR_MAX - 1; ++nr)
-    {
-        if (poss_cells[nr].n == 2)
-        {
-            first = nr + 1;
-            // search if there's another number having the same possible cells
-            for (nr2 = nr + 1; nr2 < NR_MAX; ++nr2)
-            {
-                if (poss_cells[nr2].n == 2)
-                {
-                    int same = 1;
-                    int slot;
-
-                    second = nr2 + 1;
-                    // the cells are traversed in the same order
-                    for (slot = 0; slot < 2; slot++)
-                    {
-                        // compare if the possible cells point to the same place
-                        if ((struct point *) *(poss_cells[nr].ptr + slot) !=
-                                (struct point *) *(poss_cells[nr2].ptr + slot))
-                        {
-                            same = 0;
-                            break;
-                        }
-                    }
-                    if (same)
-                    {
-                        debug("Hidden pair {%d, %d} found", first, second);
-                        for (slot = 0; slot < 2; slot++)
-                        {
-                            cell = (struct point *) *(poss_cells[nr].ptr + slot);
-                            // eliminate all other possibilities except the pair
-                            for (i = 0; i < NR_MAX; ++i)
-                            {
-                                if (i + 1 == first || i + 1 == second)
-                                {
-                                    continue;
-                                }
-
-                                if (set_poss(cell->y, cell->x, i, false))
-                                {
-                                    explain("Eliminating %d from (%d, %d)", i+1, cell->x+1, cell->y+1);
-                                    ++found;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // free the allocated stuff
-    for (nr = 0; nr < NR_MAX; ++nr)
-    {
-        //debug("freeing mem at %p", poss_cells[nr].ptr);
-        free(poss_cells[nr].ptr);
-    }
-
-    return found;
+	return found
 }
-*/
 
 func ScanBoxLineGroup(game *Game, cells []Point) int {
 

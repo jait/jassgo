@@ -229,14 +229,14 @@ func (game *Game) Solve() bool {
 				// print_board()
 				continue
 			}
-			Debug("Scanning for hidden pairs...")
-			if nr = ScanAllGroups(&scan_hidden_pairs_group, "hidden pairs"); nr > 0 {
-				// print_board();
-				continue
-			}
 		*/
+		Debug("Scanning for hidden pairs...")
+		if nr = scanner.ScanAllGroups(ScanHiddenPairsGroup, "hidden pairs"); nr > 0 {
+			// print_board();
+			continue
+		}
 		Debug("Doing box/line reduction...")
-		if nr = ScanRowsCols(game, ScanBoxLineGroup, "box/line"); nr > 0 {
+		if nr = scanner.ScanRowsCols(ScanBoxLineGroup, "box/line"); nr > 0 {
 			//print_board();
 			continue
 		}
@@ -256,4 +256,8 @@ func (game *Game) Solve() bool {
 
 func (game *Game) SetMode(newmode int) {
 	game.mode = newmode
+}
+
+func (a Point) Equals(b Point) bool {
+	return a.x == b.x && a.y == b.y
 }
