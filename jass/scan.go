@@ -241,122 +241,103 @@ func (scanner *Scanner) ScanBoxes() int {
 	return found
 }
 
-/*
-int
-scan_naked_pairs_group(struct point cells[], int n_cells)
-{
-    num_t k;
-    int found = 0;
-    num_t subset[2];
-    num_t subset_comp[2];
-    struct point place;
-    struct point place_comp;	// holds the places (x,y) of the pair
-    int cellno, cellno2, cellno3;
-    struct point *cell = NULL;
-    struct point *cell2 = NULL;
-    struct point *cell3 = NULL;
+func ScanNakedPairsGroup(game *Game, cells []Point) int {
 
-    if (NULL == cells || n_cells < 1)
-        return 0;
+	var k Num
+	found := 0
+	var subset [2]Num
+	var subsetComp [2]Num
+	var place Point
+	var placeComp Point // holds the places (x,y) of the pair
 
-    // walk through all given cells
-    for (cellno = 0; cellno < n_cells - 1; ++cellno)
-    {
-        cell = & (cells[cellno]);
+	nCells := len(cells)
+	if nCells == 0 {
+		return 0
+	}
 
-        if (board[cell->y][cell->x] != 0)
-            continue;
+	// walk through all given cells
+	for cellno, cell := range cells {
 
-        // clear things
-        subset[0] = 0;
-        subset[1] = 0;
+		if game.board[cell.y][cell.x] != 0 {
+			continue
+		}
 
-        // check # of candidates for this cell
-        for (k = 0; k < NR_MAX; ++k)
-        {
-            if (is_poss(cell->y, cell->x,k))
-            {
-                if (subset[0] == 0)
-                {
-                    subset[0] = k + 1;
-                }
-                else if (subset[1] == 0)
-                {
-                    subset[1] = k + 1;
-                    place.y = cell->y;
-                    place.x = cell->x;
-                }
-                else
-                {
-                    subset[0] = 0;
-                    subset[1] = 0;
-                    break;
-                }
-            }
-        }
+		// clear things
+		subset[0] = 0
+		subset[1] = 0
 
-        // if the cell has only two candidates
-        if (subset[0] != 0 && subset[1] != 0)
-        {
-            subset_comp[0] = 0;
-            subset_comp[1] = 0;
-            place_comp.y = 0;
-            place_comp.x = 0;
+		// check # of candidates for this cell
+		for k = 0; k < NR_MAX; k++ {
+			if game.poss.Get(Num(cell.y), Num(cell.x), k) {
+				if subset[0] == 0 {
+					subset[0] = k + 1
+				} else if subset[1] == 0 {
+					subset[1] = k + 1
+					place.y = cell.y
+					place.x = cell.x
+				} else {
+					subset[0] = 0
+					subset[1] = 0
+					break
+				}
+			}
+		}
 
-            for (cellno2 = cellno + 1; cellno2 < n_cells; ++cellno2)
-            {
-                cell2 = & (cells[cellno2]);
+		// if the cell has only two candidates
+		if subset[0] != 0 && subset[1] != 0 {
+			subsetComp[0] = 0
+			subsetComp[1] = 0
+			placeComp.y = 0
+			placeComp.x = 0
+			var cell2 Point
 
-                if (board[cell2->y][cell2->x] != 0)
-                    continue;
+			for cellno2 := cellno + 1; cellno2 < nCells; cellno2++ {
+				cell2 = cells[cellno2]
 
-                // clear things
-                subset_comp[0] = 0;
-                subset_comp[1] = 0;
-                place_comp.x = cell2->x;
+				if game.board[cell2.y][cell2.x] != 0 {
+					continue
+				}
 
-                if (poss_equals(place.y, place.x, cell2->y, cell2->x))
-                {
-                    subset_comp[0] = subset[0];
-                    subset_comp[1] = subset[1];
-                    place_comp.x = cell2->x;
-                    place_comp.y = cell2->y;
-                    break;
-                    // TODO: this ignores naked triples
-                }
-            }
+				// clear things
+				subsetComp[0] = 0
+				subsetComp[1] = 0
+				placeComp.x = cell2.x
 
-            if (subset_comp[0] != 0 && subset_comp[1] != 0)
-            {
-                // eliminate candidates from other cells in the group
-                for (cellno3 = 0; cellno3 < n_cells; ++cellno3)
-                {
-                    cell3 = & (cells[cellno3]);
-                    if (cell3 == cell || cell3 == cell2)
-                        continue;
+				if game.poss.Equals(Num(place.y), Num(place.x), Num(cell2.y), Num(cell2.x)) {
+					subsetComp[0] = subset[0]
+					subsetComp[1] = subset[1]
+					placeComp.x = cell2.x
+					placeComp.y = cell2.y
+					break
+					// TODO: this ignores naked triples
+				}
+			}
 
-                    if (set_poss(cell3->y, cell3->x, subset[0]-1, false))
-                    {
+			if subsetComp[0] != 0 && subsetComp[1] != 0 {
+				// eliminate candidates from other cells in the group
+				for cellno3 := 0; cellno3 < nCells; cellno3++ {
+					cell3 := cells[cellno3]
+					if cell3.Equals(cell) || cell3.Equals(cell2) {
+						continue
+					}
 
-                        explain("Naked pair {%d, %d} found in cells (%d, %d) and (%d, %d)",subset[0], subset[1], place.x+1, place.y+1, place_comp.x+1,place_comp.y+1);
-                        debug("Eliminating %d from (%d, %d)\n", subset[0], cell3->x+1, cell3->y+1);
-                        ++found;
-                    }
-                    if (set_poss(cell3->y, cell3->x, subset[1]-1, false))
-                    {
-                        explain("Naked pair {%d, %d} found in cells (%d, %d) and (%d, %d)", subset[0], subset[1], place.x+1, place.y+1, place_comp.x+1,place_comp.y+1);
-                        debug("Eliminating %d from (%d, %d)", subset[1], cell3->x+1, cell3->y+1);
-                        ++found;
-                    }
-                }
-            }
-        }
-    }
+					if game.poss.Set(Num(cell3.y), Num(cell3.x), subset[0]-1, false) {
+						Explain("Naked pair {%d, %d} found in cells (%d, %d) and (%d, %d)", subset[0], subset[1], place.x+1, place.y+1, placeComp.x+1, placeComp.y+1)
+						Debug("Eliminating %d from (%d, %d)\n", subset[0], cell3.x+1, cell3.y+1)
+						found++
+					}
+					if game.poss.Set(Num(cell3.y), Num(cell3.x), subset[1]-1, false) {
+						Explain("Naked pair {%d, %d} found in cells (%d, %d) and (%d, %d)", subset[0], subset[1], place.x+1, place.y+1, placeComp.x+1, placeComp.y+1)
+						Debug("Eliminating %d from (%d, %d)", subset[1], cell3.x+1, cell3.y+1)
+						found++
+					}
+				}
+			}
+		}
+	}
 
-    return found;
+	return found
 }
-
-*/
 
 func findPossibleCells(game *Game, cells []Point) [][]Point {
 

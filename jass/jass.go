@@ -223,13 +223,11 @@ func (game *Game) Solve() bool {
 			// print_board()
 			continue
 		}
-		/*
-			Debug("Scanning for naked pairs...")
-			if nr = ScanAllGroups(&scan_naked_pairs_group, "naked pairs"); nr > 0 {
-				// print_board()
-				continue
-			}
-		*/
+		Debug("Scanning for naked pairs...")
+		if nr = scanner.ScanAllGroups(ScanNakedPairsGroup, "naked pairs"); nr > 0 {
+			// print_board()
+			continue
+		}
 		Debug("Scanning for hidden pairs...")
 		if nr = scanner.ScanAllGroups(ScanHiddenPairsGroup, "hidden pairs"); nr > 0 {
 			// print_board();
