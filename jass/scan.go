@@ -284,6 +284,7 @@ func ScanNakedPairsGroup(game *Game, cells []Point) int {
 		placeComp = Point{0, 0}
 		var cell2 Point
 
+		pairFound := false
 		for cellno2 := cellno + 1; cellno2 < nCells; cellno2++ {
 			cell2 = cells[cellno2]
 
@@ -291,19 +292,15 @@ func ScanNakedPairsGroup(game *Game, cells []Point) int {
 				continue
 			}
 
-			// clear things
-			subsetComp[0] = 0
-			subsetComp[1] = 0
-
 			if game.poss.Equals(Num(place.y), Num(place.x), Num(cell2.y), Num(cell2.x)) {
-				subsetComp = subset
+				pairFound = true
 				placeComp = cell2
 				break
 				// TODO: this ignores naked triples
 			}
 		}
 
-		if subsetComp[0] != 0 && subsetComp[1] != 0 {
+		if pairFound {
 			// eliminate candidates from other cells in the group
 			for _, cell3 := range cells {
 				if cell3.Equals(cell) || cell3.Equals(cell2) {
