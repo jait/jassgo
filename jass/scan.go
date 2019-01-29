@@ -195,7 +195,7 @@ func (scanner *Scanner) ScanBoxes() int {
 			/* check after each box */
 			for k = 0; k < NR_MAX; k++ {
 				if place[k].x > 0 && place[k].y > 0 {
-					Explain("Single possible place (%d, %d) for %d in box (%d, %d)", place[k].x, place[k].y, k+1, bj+1, bi+1)
+					Explain("Single possible place %s for %d in box (%d, %d)", place[k].ToString(), k+1, bj+1, bi+1)
 					/* 1) because place-array has special meaning for zero
 					 * 2) because k is zero-offset */
 					game.Fix(Num(place[k].y-1), Num(place[k].x-1), k+1)
@@ -228,7 +228,7 @@ func (scanner *Scanner) ScanBoxes() int {
 						for j = 0; j < BoxX; j++ {
 							if game.poss.Get(Num(place[k].y-1), tmpx*BoxX+j, k+1) {
 								/* explain("%d possible only on row %d in box (%d, %d)", k+1, place[k].y, bj+1, bi+1); */
-								Debug("Eliminating %d from (%d, %d)\n", k+1, tmpx*BoxX+j+1, place[k].y)
+								Debug("Eliminating %d from (%d, %d)", k+1, tmpx*BoxX+j+1, place[k].y)
 								game.poss.Set(Num(place[k].y-1), tmpx*BoxX+j, k+1, false)
 								found++
 							}
@@ -322,13 +322,13 @@ func ScanNakedPairsGroup(game *Game, cells []Point) int {
 					}
 
 					if game.poss.Set(Num(cell3.y), Num(cell3.x), subset[0], false) {
-						Explain("Naked pair {%d, %d} found in cells (%d, %d) and (%d, %d)", subset[0], subset[1], place.x+1, place.y+1, placeComp.x+1, placeComp.y+1)
-						Debug("Eliminating %d from (%d, %d)\n", subset[0], cell3.x+1, cell3.y+1)
+						Explain("Naked pair {%d, %d} found in cells %s and %s", subset[0], subset[1], place.ToString1(), placeComp.ToString1())
+						Debug("Eliminating %d from %s", subset[0], cell3.ToString1())
 						found++
 					}
 					if game.poss.Set(Num(cell3.y), Num(cell3.x), subset[1], false) {
-						Explain("Naked pair {%d, %d} found in cells (%d, %d) and (%d, %d)", subset[0], subset[1], place.x+1, place.y+1, placeComp.x+1, placeComp.y+1)
-						Debug("Eliminating %d from (%d, %d)", subset[1], cell3.x+1, cell3.y+1)
+						Explain("Naked pair {%d, %d} found in cells %s and %s", subset[0], subset[1], place.ToString1(), placeComp.ToString1())
+						Debug("Eliminating %d from %s", subset[1], cell3.ToString1())
 						found++
 					}
 				}
@@ -484,7 +484,7 @@ func ScanHiddenPairsGroup(game *Game, cells []Point) int {
 								}
 
 								if game.poss.Set(Num(cell.y), Num(cell.x), i, false) {
-									Explain("Eliminating %d from (%d, %d)", i, cell.x+1, cell.y+1)
+									Explain("Eliminating %d from %s", i, cell.ToString1())
 									found++
 								}
 							}

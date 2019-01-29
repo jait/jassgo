@@ -44,6 +44,14 @@ type Game struct {
 	mode  int
 }
 
+func (point Point) ToString() string {
+	return fmt.Sprintf("(%d, %d)", point.x, point.y)
+}
+
+func (point Point) ToString1() string {
+	return fmt.Sprintf("(%d, %d)", point.x+1, point.y+1)
+}
+
 func NewBoard() Board {
 	b := make(Board, Y)
 	for y := range b {
