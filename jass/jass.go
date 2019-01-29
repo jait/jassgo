@@ -87,6 +87,73 @@ func (b *Board) Print() {
 	fmt.Println("+-------+-------+-------+")
 }
 
+func (b Board) Verify() bool {
+	var found [NR_MAX]bool
+	result := true
+	// rows
+	for j := 0; j < Y; j++ {
+		for i := 0; i < X; i++ {
+			n := b[j][i]
+			if found[n-1] {
+				Info("Verify error: %d occurs more than once", n)
+				result = false
+			} else {
+				found[n-1] = true
+			}
+		}
+		for n, f := range found {
+			if !f {
+				Info("Verify error: %d not found", n+1)
+				result = false
+			}
+			// clear at the same time
+			found[n] = false
+		}
+	}
+	// cols
+	for i := 0; i < X; i++ {
+		for j := 0; j < Y; j++ {
+			n := b[j][i]
+			if found[n-1] {
+				Info("Verify error: %d occurs more than once", n)
+				result = false
+			} else {
+				found[n-1] = true
+			}
+		}
+		for n, f := range found {
+			if !f {
+				Info("Verify error: %d not found", n+1)
+				result = false
+			}
+			// clear at the same time
+			found[n] = false
+		}
+	}
+	// TODO: boxes
+	return result
+}
+
+type BoardWalker func(y, x, val Num)
+
+func (b Board) ForEachRow(fn BoardWalker) {
+	// rows
+	for j := Num(0); j < Y; j++ {
+		for i := Num(0); i < X; i++ {
+			fn(j, i, b[j][i])
+		}
+	}
+}
+
+func (b Board) ForEachCol(fn BoardWalker) {
+	// cols
+	for i := Num(0); i < X; i++ {
+		for j := Num(0); j < Y; j++ {
+			fn(j, i, b[j][i])
+		}
+	}
+}
+
 /*
  * Fix (place) a number (1...NR_MAX) in the board cell (y,x)
  */
@@ -149,14 +216,11 @@ func (game *Game) CountUnsolved() int {
 
 func (board *Board) CountUnsolved() int {
 	unsolved := 0
-
-	for i := 0; i < X; i++ {
-		for j := 0; j < Y; j++ {
-			if (*board)[i][j] == 0 {
-				unsolved++
-			}
+	board.ForEachCol(func(y, x, val Num) {
+		if val == 0 {
+			unsolved++
 		}
-	}
+	})
 	return unsolved
 }
 
@@ -183,15 +247,13 @@ func (board *Board) ToString() string {
 	var buffer bytes.Buffer
 	b := *board
 
-	for i := 0; i < Y; i++ {
-		for j := 0; j < X; j++ {
-			if b[i][j] == 0 {
-				buffer.WriteString(".")
-			} else {
-				buffer.WriteString(strconv.FormatInt(int64(b[i][j]), 10))
-			}
+	b.ForEachRow(func(y, x, val Num) {
+		if val == 0 {
+			buffer.WriteString(".")
+		} else {
+			buffer.WriteString(strconv.FormatInt(int64(val), 10))
 		}
-	}
+	})
 	return buffer.String()
 }
 
@@ -246,6 +308,7 @@ func (game *Game) Solve() bool {
 
 	if nr = game.CountUnsolved(); nr == 0 {
 		Info("Sudoku solved!")
+		game.board.Verify()
 	} else {
 		Info("Sudoku not solved, %d numbers left =(", nr)
 	}
