@@ -546,8 +546,7 @@ func ScanBoxLineGroup(game *Game, cells []Point) int {
 	//  number => possible cells
 	possCells := findPossibleCells(game, cells)
 
-	// TODO: why NR_MAX-1 ?
-	for nr = 0; nr < NR_MAX-1; nr++ {
+	for nr = 0; nr < NR_MAX; nr++ {
 		nPoss := len(possCells[nr])
 		if nPoss > BoxX {
 			continue
