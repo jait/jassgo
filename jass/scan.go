@@ -27,6 +27,10 @@ func (scanner *Scanner) ScanSingles() int {
 
 	for i = 0; i < Y; i++ {
 		for j = 0; j < X; j++ {
+			// don't check possibilities if the cell is occupied
+			if scanner.game.board[i][j] != 0 {
+				continue
+			}
 			val := Num(0)
 			for k = 1; k <= NR_MAX; k++ {
 				if scanner.game.poss.Get(i, j, k) {
@@ -132,7 +136,7 @@ func (scanner *Scanner) ScanSinglesRowCol() int {
  * Finds singles in boxes and does box-line and box-col reduction
  *
  */
-func (scanner *Scanner) ScanBoxes() int {
+func (scanner *Scanner) ScanSinglesBoxes() int {
 	game := scanner.game
 	var i, j, k, bi, bj, tmpx, tmpy Num
 	found := 0
@@ -243,7 +247,6 @@ func (scanner *Scanner) ScanBoxes() int {
 
 func ScanNakedPairsGroup(game *Game, cells []Point) int {
 
-	var k Num
 	found := 0
 	var subset [2]Num
 	var subsetComp [2]Num
@@ -267,68 +270,50 @@ func ScanNakedPairsGroup(game *Game, cells []Point) int {
 		subset[1] = 0
 
 		// check # of candidates for this cell
-		for k = 1; k <= NR_MAX; k++ {
-			if game.poss.Get(Num(cell.y), Num(cell.x), k) {
-				if subset[0] == 0 {
-					subset[0] = k
-				} else if subset[1] == 0 {
-					subset[1] = k
-					place.y = cell.y
-					place.x = cell.x
-				} else {
-					subset[0] = 0
-					subset[1] = 0
-					break
-				}
+		cellCands := game.poss.Candidates(Num(cell.y), Num(cell.x))
+		if len(cellCands) == 2 {
+			subset[0], subset[1] = cellCands[0], cellCands[1]
+			place = cell
+		} else {
+			continue
+		}
+
+		// the cell has only two candidates... check if we can find another one like it
+		subsetComp[0] = 0
+		subsetComp[1] = 0
+		placeComp = Point{0, 0}
+		var cell2 Point
+
+		for cellno2 := cellno + 1; cellno2 < nCells; cellno2++ {
+			cell2 = cells[cellno2]
+
+			if game.board[cell2.y][cell2.x] != 0 {
+				continue
+			}
+
+			// clear things
+			subsetComp[0] = 0
+			subsetComp[1] = 0
+
+			if game.poss.Equals(Num(place.y), Num(place.x), Num(cell2.y), Num(cell2.x)) {
+				subsetComp = subset
+				placeComp = cell2
+				break
+				// TODO: this ignores naked triples
 			}
 		}
 
-		// if the cell has only two candidates
-		if subset[0] != 0 && subset[1] != 0 {
-			subsetComp[0] = 0
-			subsetComp[1] = 0
-			placeComp.y = 0
-			placeComp.x = 0
-			var cell2 Point
-
-			for cellno2 := cellno + 1; cellno2 < nCells; cellno2++ {
-				cell2 = cells[cellno2]
-
-				if game.board[cell2.y][cell2.x] != 0 {
+		if subsetComp[0] != 0 && subsetComp[1] != 0 {
+			// eliminate candidates from other cells in the group
+			for _, cell3 := range cells {
+				if cell3.Equals(cell) || cell3.Equals(cell2) {
 					continue
 				}
 
-				// clear things
-				subsetComp[0] = 0
-				subsetComp[1] = 0
-				placeComp.x = cell2.x
-
-				if game.poss.Equals(Num(place.y), Num(place.x), Num(cell2.y), Num(cell2.x)) {
-					subsetComp[0] = subset[0]
-					subsetComp[1] = subset[1]
-					placeComp.x = cell2.x
-					placeComp.y = cell2.y
-					break
-					// TODO: this ignores naked triples
-				}
-			}
-
-			if subsetComp[0] != 0 && subsetComp[1] != 0 {
-				// eliminate candidates from other cells in the group
-				for cellno3 := 0; cellno3 < nCells; cellno3++ {
-					cell3 := cells[cellno3]
-					if cell3.Equals(cell) || cell3.Equals(cell2) {
-						continue
-					}
-
-					if game.poss.Set(Num(cell3.y), Num(cell3.x), subset[0], false) {
+				for _, num := range subset {
+					if game.poss.Set(Num(cell3.y), Num(cell3.x), Num(num), false) {
 						Explain("Naked pair {%d, %d} found in cells %s and %s", subset[0], subset[1], place.ToString1(), placeComp.ToString1())
-						Debug("Eliminating %d from %s", subset[0], cell3.ToString1())
-						found++
-					}
-					if game.poss.Set(Num(cell3.y), Num(cell3.x), subset[1], false) {
-						Explain("Naked pair {%d, %d} found in cells %s and %s", subset[0], subset[1], place.ToString1(), placeComp.ToString1())
-						Debug("Eliminating %d from %s", subset[1], cell3.ToString1())
+						Debug("Eliminating %d from %s", num, cell3.ToString1())
 						found++
 					}
 				}
@@ -409,28 +394,30 @@ func (scanner *Scanner) ScanRowsCols(fn GroupScanFunc, name string) int {
 func (scanner *Scanner) ScanAllGroups(fn GroupScanFunc, name string) int {
 	found := 0
 
-	var tmpy, tmpx int
-	var n Num
+	found += scanner.ScanRowsCols(fn, name)
+	found += scanner.ScanBoxes(fn, name)
 
+	return found
+}
+
+func (scanner *Scanner) ScanBoxes(fn GroupScanFunc, name string) int {
+
+	found := 0
 	cells := make([]Point, NR_MAX)
 
-	found += scanner.ScanRowsCols(fn, name)
-
-	// and boxes
+	// scan them boxes, one by one
 	boxes_y := Y / BoxY
 	boxes_x := X / BoxX
 
 	for bj := 0; bj < boxes_y; bj++ {
 		for bi := 0; bi < boxes_x; bi++ {
-			// debug("Scanning box (%d, %d)", bi+1, bj+1);
+			// Debug("Scanning box (%d, %d)", bi+1, bj+1);
 			// loop over the nine cells
-			n = 0
+			n := 0
 			for j := 0; j < BoxY; j++ {
-				tmpy = bj*BoxY + j
 				for i := 0; i < BoxX; i++ {
-					tmpx = bi*BoxX + i
-					cells[n].y = tmpy
-					cells[n].x = tmpx
+					cells[n].y = bj*BoxY + j
+					cells[n].x = bi*BoxX + i
 					n++
 				}
 			}

@@ -32,6 +32,19 @@ func (p *Poss) Get(y, x, candidate Num) bool {
 }
 
 /*
+ * Get candidate numbers for cell (y,x)
+ */
+func (p *Poss) Candidates(y, x Num) []Num {
+	res := make([]Num, 0, NR_MAX)
+	for k := Num(1); k <= NR_MAX; k++ {
+		if (*p)[y][x][k-1] {
+			res = append(res, k)
+		}
+	}
+	return res
+}
+
+/*
  * Sets candidate to be possible or not possible for cell (x,y)
  *
  */

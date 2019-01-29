@@ -282,7 +282,7 @@ func (game *Game) Solve() bool {
 			continue
 		}
 		Debug("Scanning boxes for singles and pointing pairs/triples...")
-		if nr = scanner.ScanBoxes(); nr > 0 {
+		if nr = scanner.ScanSinglesBoxes(); nr > 0 {
 			// print_board()
 			continue
 		}
