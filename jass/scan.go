@@ -210,7 +210,7 @@ func (scanner *Scanner) ScanBoxes() int {
 
 						for i = 0; i < BoxY; i++ {
 							if game.poss.Get(tmpy*BoxY+i, Num(place[k].x-1), k+1) {
-								/* explain("%d possible only on col %d in box (%d, %d)", k+1, place[k].x, bj+1, bi+1); */
+								/* Explain("%d possible only on col %d in box (%d, %d)", k+1, place[k].x, bj+1, bi+1); */
 								Debug("Eliminating %d from (%d, %d)", k+1, place[k].x, tmpy*BoxY+i+1)
 								game.poss.Set(tmpy*BoxY+i, Num(place[k].x-1), k+1, false)
 								found++
@@ -227,7 +227,7 @@ func (scanner *Scanner) ScanBoxes() int {
 
 						for j = 0; j < BoxX; j++ {
 							if game.poss.Get(Num(place[k].y-1), tmpx*BoxX+j, k+1) {
-								/* explain("%d possible only on row %d in box (%d, %d)", k+1, place[k].y, bj+1, bi+1); */
+								/* Explain("%d possible only on row %d in box (%d, %d)", k+1, place[k].y, bj+1, bi+1); */
 								Debug("Eliminating %d from (%d, %d)", k+1, tmpx*BoxX+j+1, place[k].y)
 								game.poss.Set(Num(place[k].y-1), tmpx*BoxX+j, k+1, false)
 								found++

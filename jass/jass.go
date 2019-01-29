@@ -29,7 +29,6 @@ const (
 )
 
 type Num uint8
-type Coord int8
 
 type Point struct {
 	x int
@@ -50,6 +49,10 @@ func (point Point) ToString() string {
 
 func (point Point) ToString1() string {
 	return fmt.Sprintf("(%d, %d)", point.x+1, point.y+1)
+}
+
+func (a Point) Equals(b Point) bool {
+	return a.x == b.x && a.y == b.y
 }
 
 func NewBoard() Board {
@@ -243,7 +246,7 @@ func (game *Game) ParseBoard(str string) bool {
 	return true
 }
 
-func (board *Board) ToString() string {
+func (board *Board) String() string {
 	var buffer bytes.Buffer
 	b := *board
 
@@ -278,7 +281,6 @@ func (game *Game) Solve() bool {
 			// print_board()
 			continue
 		}
-
 		Debug("Scanning boxes for singles and pointing pairs/triples...")
 		if nr = scanner.ScanBoxes(); nr > 0 {
 			// print_board()
@@ -314,15 +316,11 @@ func (game *Game) Solve() bool {
 	}
 	game.board.Print()
 
-	fmt.Println(game.board.ToString())
+	fmt.Println(game.board.String())
 
-	return (nr == 0)
+	return nr == 0
 }
 
 func (game *Game) SetMode(newmode int) {
 	game.mode = newmode
-}
-
-func (a Point) Equals(b Point) bool {
-	return a.x == b.x && a.y == b.y
 }
