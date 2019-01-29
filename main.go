@@ -19,7 +19,6 @@ import (
 
 func main() {
 	game := &jass.Game{}
-
 	game.Init()
 
 	/* check args

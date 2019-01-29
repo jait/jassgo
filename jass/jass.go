@@ -44,26 +44,20 @@ type Game struct {
 	mode  int
 }
 
+func NewBoard() Board {
+	b := make(Board, Y)
+	for y := range b {
+		b[y] = make([]Num, X)
+	}
+	return b
+}
+
 func (game *Game) Init() {
-	var i, j, k Num
-	game.board = make(Board, Y)
-	for y, _ := range game.board {
-		game.board[y] = make([]Num, X)
-	}
-	game.poss = make(Poss, Y)
-	for i = 0; i < Y; i++ {
-		game.poss[i] = make([][]bool, X)
-		for j = 0; j < X; j++ {
-			game.poss[i][j] = make([]bool, NR_MAX)
-			for k = 0; k < NR_MAX; k++ {
-				game.poss.Set(i, j, k, true)
-			}
-		}
-	}
+	game.board = NewBoard()
+	game.poss = NewPoss()
 }
 
 func (b *Board) Print() {
-
 	for i := 0; i < X; i++ {
 		if i%BoxY == 0 {
 			fmt.Println("+-------+-------+-------+")
@@ -85,18 +79,21 @@ func (b *Board) Print() {
 	fmt.Println("+-------+-------+-------+")
 }
 
+/*
+ * Fix (place) a number (1...NR_MAX) in the board cell (y,x)
+ */
 func (game *Game) Fix(y, x, val Num) {
 
 	var i, k Num
 	//Explain("Placing %d into (%d, %d)", val, x+1, y+1);
 	if game.board[y][x] != 0 {
-		Info("Error: cell (%d,%d) already contains value %d\n", x+1, y+1, game.board[y][x])
+		Info("Error: cell (%d,%d) already contains value %d", x+1, y+1, game.board[y][x])
 	}
 
 	game.board[y][x] = val
 
 	/* no other possibilities for this cell */
-	for k = 0; k < NR_MAX; k++ {
+	for k = 1; k <= NR_MAX; k++ {
 		game.poss.Set(y, x, k, false)
 	}
 
@@ -105,14 +102,14 @@ func (game *Game) Fix(y, x, val Num) {
 		/*
 		   Explain("Eliminating %d from (%d, %d)", val, x+1, i+1);
 		*/
-		game.poss.Set(i, x, val-1, false)
+		game.poss.Set(i, x, val, false)
 	}
 	/* and row */
 	for i = Num(0); i < X; i++ {
 		/*
 		   Explain("Eliminating %d from (%d, %d)", val, i+1, y+1);
 		*/
-		game.poss.Set(y, i, val-1, false)
+		game.poss.Set(y, i, val, false)
 	}
 
 	/* eliminate all occurrences of val from current box */
@@ -124,7 +121,7 @@ func (game *Game) Fix(y, x, val Num) {
 			/*
 			   Explain("Eliminating %d from (%d, %d)", val, j+1, i+1);
 			*/
-			game.poss.Set(i, j, val-1, false)
+			game.poss.Set(i, j, val, false)
 		}
 	}
 
@@ -138,7 +135,6 @@ func (game *Game) Fix(y, x, val Num) {
  * Returns number of unsolved cells
  *
  */
-
 func (game *Game) CountUnsolved() int {
 	return game.board.CountUnsolved()
 }

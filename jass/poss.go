@@ -10,8 +10,25 @@ import "reflect"
 
 type Poss [][][]bool
 
+func NewPoss() Poss {
+	poss := make(Poss, Y)
+	for i := range poss {
+		poss[i] = make([][]bool, X)
+		for j := range poss[i] {
+			poss[i][j] = make([]bool, NR_MAX)
+			for k := Num(1); k <= NR_MAX; k++ {
+				poss.Set(Num(i), Num(j), k, true)
+			}
+		}
+	}
+	return poss
+}
+
+/*
+ * Get possibility (true, false) of candidate (1...NR_MAX) in cell (y,x)
+ */
 func (p *Poss) Get(y, x, candidate Num) bool {
-	return (*p)[y][x][candidate]
+	return (*p)[y][x][candidate-1]
 }
 
 /*
@@ -19,8 +36,8 @@ func (p *Poss) Get(y, x, candidate Num) bool {
  *
  */
 func (p *Poss) Set(y, x, candidate Num, val bool) bool {
-	prev := (*p)[y][x][candidate]
-	(*p)[y][x][candidate] = val
+	prev := (*p)[y][x][candidate-1]
+	(*p)[y][x][candidate-1] = val
 	return prev
 }
 
@@ -41,7 +58,7 @@ func (p *Poss) Set(y, x, candidate Num, val bool) bool {
  */
 func (p *Poss) GetOnly(y, x Num) Num {
 	var val, k Num
-	for k = 0; k < 9; k++ {
+	for k = 0; k < NR_MAX; k++ {
 		if p.Get(y, x, k) {
 			if val != 0 {
 				/* at least two possibilities */

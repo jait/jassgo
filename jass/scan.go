@@ -28,7 +28,7 @@ func (scanner *Scanner) ScanSingles() int {
 	for i = 0; i < Y; i++ {
 		for j = 0; j < X; j++ {
 			val := Num(0)
-			for k = 0; k < NR_MAX; k++ {
+			for k = 1; k <= NR_MAX; k++ {
 				if scanner.game.poss.Get(i, j, k) {
 					if val != 0 {
 						/* at least two possibilities */
@@ -36,7 +36,7 @@ func (scanner *Scanner) ScanSingles() int {
 						break
 					}
 
-					val = k + 1 /* because val is 1... and index k is 0... */
+					val = k
 				}
 			}
 
@@ -70,7 +70,7 @@ func (scanner *Scanner) ScanSinglesRowCol() int {
 			}
 
 			for k = 0; k < NR_MAX; k++ {
-				if scanner.game.poss.Get(i, j, k) {
+				if scanner.game.poss.Get(i, j, k+1) {
 					if place[k] == 0 { /* no possibility yet */
 						place[k] = int(j + 1) /* because zero has a special meaning */
 					} else {
@@ -105,7 +105,7 @@ func (scanner *Scanner) ScanSinglesRowCol() int {
 			}
 
 			for k = 0; k < NR_MAX; k++ {
-				if scanner.game.poss.Get(i, j, k) {
+				if scanner.game.poss.Get(i, j, k+1) {
 					if place[k] == 0 { /* no possibility yet */
 						place[k] = int(i + 1) /* because zero has a special meaning */
 					} else {
@@ -168,7 +168,7 @@ func (scanner *Scanner) ScanBoxes() int {
 					}
 
 					for k = 0; k < NR_MAX; k++ {
-						if game.poss.Get(tmpy, tmpx, k) {
+						if game.poss.Get(tmpy, tmpx, k+1) {
 							/* debug("%d poss in (%d, %d)", k+1, j+1, i+1); */
 							if place[k].x == 0 {
 								/* no possibility yet */
@@ -209,10 +209,10 @@ func (scanner *Scanner) ScanBoxes() int {
 						}
 
 						for i = 0; i < BoxY; i++ {
-							if game.poss.Get(tmpy*BoxY+i, Num(place[k].x-1), k) {
+							if game.poss.Get(tmpy*BoxY+i, Num(place[k].x-1), k+1) {
 								/* explain("%d possible only on col %d in box (%d, %d)", k+1, place[k].x, bj+1, bi+1); */
 								Debug("Eliminating %d from (%d, %d)", k+1, place[k].x, tmpy*BoxY+i+1)
-								game.poss.Set(tmpy*BoxY+i, Num(place[k].x-1), k, false)
+								game.poss.Set(tmpy*BoxY+i, Num(place[k].x-1), k+1, false)
 								found++
 							}
 						}
@@ -226,10 +226,10 @@ func (scanner *Scanner) ScanBoxes() int {
 						}
 
 						for j = 0; j < BoxX; j++ {
-							if game.poss.Get(Num(place[k].y-1), tmpx*BoxX+j, k) {
+							if game.poss.Get(Num(place[k].y-1), tmpx*BoxX+j, k+1) {
 								/* explain("%d possible only on row %d in box (%d, %d)", k+1, place[k].y, bj+1, bi+1); */
 								Debug("Eliminating %d from (%d, %d)\n", k+1, tmpx*BoxX+j+1, place[k].y)
-								game.poss.Set(Num(place[k].y-1), tmpx*BoxX+j, k, false)
+								game.poss.Set(Num(place[k].y-1), tmpx*BoxX+j, k+1, false)
 								found++
 							}
 						}
@@ -267,12 +267,12 @@ func ScanNakedPairsGroup(game *Game, cells []Point) int {
 		subset[1] = 0
 
 		// check # of candidates for this cell
-		for k = 0; k < NR_MAX; k++ {
+		for k = 1; k <= NR_MAX; k++ {
 			if game.poss.Get(Num(cell.y), Num(cell.x), k) {
 				if subset[0] == 0 {
-					subset[0] = k + 1
+					subset[0] = k
 				} else if subset[1] == 0 {
-					subset[1] = k + 1
+					subset[1] = k
 					place.y = cell.y
 					place.x = cell.x
 				} else {
@@ -321,12 +321,12 @@ func ScanNakedPairsGroup(game *Game, cells []Point) int {
 						continue
 					}
 
-					if game.poss.Set(Num(cell3.y), Num(cell3.x), subset[0]-1, false) {
+					if game.poss.Set(Num(cell3.y), Num(cell3.x), subset[0], false) {
 						Explain("Naked pair {%d, %d} found in cells (%d, %d) and (%d, %d)", subset[0], subset[1], place.x+1, place.y+1, placeComp.x+1, placeComp.y+1)
 						Debug("Eliminating %d from (%d, %d)\n", subset[0], cell3.x+1, cell3.y+1)
 						found++
 					}
-					if game.poss.Set(Num(cell3.y), Num(cell3.x), subset[1]-1, false) {
+					if game.poss.Set(Num(cell3.y), Num(cell3.x), subset[1], false) {
 						Explain("Naked pair {%d, %d} found in cells (%d, %d) and (%d, %d)", subset[0], subset[1], place.x+1, place.y+1, placeComp.x+1, placeComp.y+1)
 						Debug("Eliminating %d from (%d, %d)", subset[1], cell3.x+1, cell3.y+1)
 						found++
@@ -359,7 +359,7 @@ func findPossibleCells(game *Game, cells []Point) [][]Point {
 
 		// check which numbers are possible in this cell
 		for nr := Num(0); nr < NR_MAX; nr++ {
-			if game.poss.Get(Num(cell.y), Num(cell.x), nr) {
+			if game.poss.Get(Num(cell.y), Num(cell.x), nr+1) {
 				possCells[nr] = append(possCells[nr], cell)
 				// so: copy cell coordinates to poss_cells[nr][n] and increment n?
 				//tmp = (struct point **) (poss_cells[nr].ptr + (poss_cells[nr].n));
@@ -456,6 +456,7 @@ func ScanHiddenPairsGroup(game *Game, cells []Point) int {
 	// - if another number has exactly two possible cells and the cells are the same
 	//   => hidden pair. eliminate all other candidates (if there are any) in these two cells
 
+	// we can check until NR_MAX-1 because of the inner loop checks NR_MAX
 	for nr = 0; nr < NR_MAX-1; nr++ {
 		if len(possCells[nr]) == 2 {
 			first = nr + 1
@@ -477,13 +478,13 @@ func ScanHiddenPairsGroup(game *Game, cells []Point) int {
 						for slot := 0; slot < 2; slot++ {
 							cell := possCells[nr][slot]
 							// eliminate all other possibilities except the pair
-							for i = 0; i < NR_MAX; i++ {
-								if i+1 == first || i+1 == second {
+							for i = 1; i <= NR_MAX; i++ {
+								if i == first || i == second {
 									continue
 								}
 
 								if game.poss.Set(Num(cell.y), Num(cell.x), i, false) {
-									Explain("Eliminating %d from (%d, %d)", i+1, cell.x+1, cell.y+1)
+									Explain("Eliminating %d from (%d, %d)", i, cell.x+1, cell.y+1)
 									found++
 								}
 							}
@@ -533,7 +534,7 @@ func ScanBoxLineGroup(game *Game, cells []Point) int {
 				}
 
 				if game.poss.Set(Num(j), Num(i), nr, false) {
-					Debug("Eliminating %d from (%d, %d) in box %d", nr+1, i+1, j+1, box+1)
+					Debug("Eliminating %d from (%d, %d) in box %d", nr, i+1, j+1, box+1)
 					found++
 				}
 			}
@@ -545,6 +546,7 @@ func ScanBoxLineGroup(game *Game, cells []Point) int {
 	//  number => possible cells
 	possCells := findPossibleCells(game, cells)
 
+	// TODO: why NR_MAX-1 ?
 	for nr = 0; nr < NR_MAX-1; nr++ {
 		nPoss := len(possCells[nr])
 		if nPoss > BoxX {
@@ -566,7 +568,7 @@ func ScanBoxLineGroup(game *Game, cells []Point) int {
 		}
 
 		if box >= 0 {
-			if eliminateFromBoxExcluding(nr, box, possCells[nr]) > 0 {
+			if eliminateFromBoxExcluding(nr+1, box, possCells[nr]) > 0 {
 				Explain("%d possible only in box %d in row or col", nr+1, box+1)
 				found++
 			}
