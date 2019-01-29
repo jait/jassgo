@@ -117,7 +117,7 @@ func (scanner *Scanner) ScanSinglesRowCol() int {
 		/* check for singles after each row */
 		for k = 0; k < NR_MAX; k++ {
 			if place[k] > 0 {
-				Explain("Single possible place (row %d) for %d on col %d\n", place[k]-1+1, k+1, j+1)
+				Explain("Single possible place (row %d) for %d on col %d", place[k]-1+1, k+1, j+1)
 				/* 1) because place-array has special meaning for zero
 				 * 2) because k is zero-offset */
 				scanner.game.Fix(Num(place[k]-1), j, k+1)
@@ -339,6 +339,10 @@ func ScanNakedPairsGroup(game *Game, cells []Point) int {
 	return found
 }
 
+/*
+ * Create a slice for possible cells for each number in the given set of cells
+ * In the returned slice, indices are 0...NR_MAX-1
+ */
 func findPossibleCells(game *Game, cells []Point) [][]Point {
 
 	// index = number
