@@ -9,6 +9,38 @@ package jass
 import "reflect"
 
 type Poss [][][]bool
+type CandidateSet []Num
+
+func (set CandidateSet) Equals(other CandidateSet) bool {
+	if len(set) != len(other) {
+		return false
+	}
+	for _, num := range set {
+		if !other.Contains(num) {
+			return false
+		}
+	}
+	return true
+}
+
+func (set CandidateSet) Contains(num Num) bool {
+	for _, n := range set {
+		if n == num {
+			return true
+		}
+	}
+	return false
+}
+
+func (set CandidateSet) Add(other CandidateSet) CandidateSet {
+	newSet := set
+	for _, n := range other {
+		if !set.Contains(n) {
+			newSet = append(newSet, n)
+		}
+	}
+	return newSet
+}
 
 func NewPoss() Poss {
 	poss := make(Poss, Y)
@@ -34,7 +66,7 @@ func (p *Poss) Get(y, x, candidate Num) bool {
 /*
  * Get candidate numbers for cell (y,x)
  */
-func (p *Poss) Candidates(y, x Num) []Num {
+func (p *Poss) Candidates(y, x Num) CandidateSet {
 	res := make([]Num, 0, NR_MAX)
 	for k := Num(1); k <= NR_MAX; k++ {
 		if (*p)[y][x][k-1] {

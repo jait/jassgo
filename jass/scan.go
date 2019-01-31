@@ -245,6 +245,75 @@ func (scanner *Scanner) ScanSinglesBoxes() int {
 	return found
 }
 
+func ScanNakedTriplesGroup(game *Game, cells []Point) int {
+	found := 0
+	subsetLen := 3
+
+	// 0: [cell1, cell2, cell3]
+	// 1: |cell1, cell2, cell4]
+	// 2: |cell1, cell2, cell5]
+
+	nCells := len(cells)
+
+	comb := func(n, m int, emit func([]int)) {
+		s := make([]int, m)
+		last := m - 1
+		var rc func(int, int)
+		rc = func(i, next int) {
+			for j := next; j < n; j++ {
+				s[i] = j
+				if i == last {
+					emit(s)
+				} else {
+					rc(i+1, j+1)
+				}
+			}
+			return
+		}
+		rc(0, 0)
+	}
+
+	eliminate := func(cands CandidateSet, skipCells []int) {
+		for i, cell := range cells {
+			skip := false
+			for skipCell := range skipCells {
+				if skipCell == i {
+					skip = true
+					break
+				}
+			}
+			if skip {
+				continue
+			}
+			for _, num := range cands {
+				if game.poss.Set(Num(cell.y), Num(cell.x), num, false) {
+					Debug("Naked triple: Eliminating %d from %s", num, cell.ToString1())
+					found++
+				}
+			}
+		}
+	}
+
+	comb(nCells, subsetLen, func(c []int) {
+		//fmt.Println(c)
+		testCells := []Point{}
+		cands := CandidateSet{}
+		for i := range c {
+			cell := cells[i]
+			cellCands := game.poss.Candidates(Num(cell.y), Num(cell.x))
+			cands = cands.Add(cellCands)
+			testCells = append(testCells, cells[i])
+		}
+		if len(cands) == subsetLen {
+			Debug("Naked triple %v in cells %v", cands, testCells)
+			eliminate(cands, c)
+		}
+		// cellGroups = append(cellGroups, cellComb)
+	})
+
+	return found
+}
+
 func ScanNakedPairsGroup(game *Game, cells []Point) int {
 
 	found := 0
@@ -357,15 +426,21 @@ func findPossibleCells(game *Game, cells []Point) [][]Point {
 	return possCells
 }
 
-func (scanner *Scanner) ScanRowsCols(fn GroupScanFunc, name string) int {
+func (scanner *Scanner) ScanRowsCols(fn GroupScanFunc, name string, includeOccupied bool) int {
 	found := 0
-	cells := make([]Point, NR_MAX)
 
 	// rows
 	for j := 0; j < Y; j++ {
+		cells := make([]Point, 0)
 		for i := 0; i < X; i++ {
-			cells[i].y = j
-			cells[i].x = i
+			cell := Point{y: j, x: i}
+			if !includeOccupied && scanner.game.board.CellOccupied(cell) {
+				continue
+			}
+			cells = append(cells, cell)
+		}
+		if len(cells) == 0 {
+			continue
 		}
 		Debug("Performing scan `%s' on row %d", name, j+1)
 		if fn(scanner.game, cells) > 0 {
@@ -375,9 +450,16 @@ func (scanner *Scanner) ScanRowsCols(fn GroupScanFunc, name string) int {
 
 	// cols
 	for i := 0; i < X; i++ {
+		cells := make([]Point, 0)
 		for j := 0; j < Y; j++ {
-			cells[j].y = j
-			cells[j].x = i
+			cell := Point{y: j, x: i}
+			if !includeOccupied && scanner.game.board.CellOccupied(cell) {
+				continue
+			}
+			cells = append(cells, cell)
+		}
+		if len(cells) == 0 {
+			continue
 		}
 		Debug("Performing scan `%s' on col %d", name, i+1)
 		if fn(scanner.game, cells) > 0 {
@@ -391,16 +473,24 @@ func (scanner *Scanner) ScanRowsCols(fn GroupScanFunc, name string) int {
 func (scanner *Scanner) ScanAllGroups(fn GroupScanFunc, name string) int {
 	found := 0
 
-	found += scanner.ScanRowsCols(fn, name)
-	found += scanner.ScanBoxes(fn, name)
+	found += scanner.ScanRowsCols(fn, name, true)
+	found += scanner.ScanBoxes(fn, name, true)
 
 	return found
 }
 
-func (scanner *Scanner) ScanBoxes(fn GroupScanFunc, name string) int {
+func (scanner *Scanner) ScanAllUnoccupiedGroups(fn GroupScanFunc, name string) int {
+	found := 0
+
+	found += scanner.ScanRowsCols(fn, name, false)
+	found += scanner.ScanBoxes(fn, name, false)
+
+	return found
+}
+
+func (scanner *Scanner) ScanBoxes(fn GroupScanFunc, name string, includeOccupied bool) int {
 
 	found := 0
-	cells := make([]Point, NR_MAX)
 
 	// scan them boxes, one by one
 	boxes_y := Y / BoxY
@@ -408,16 +498,22 @@ func (scanner *Scanner) ScanBoxes(fn GroupScanFunc, name string) int {
 
 	for bj := 0; bj < boxes_y; bj++ {
 		for bi := 0; bi < boxes_x; bi++ {
+			cells := make([]Point, 0)
 			// Debug("Scanning box (%d, %d)", bi+1, bj+1);
 			// loop over the nine cells
-			n := 0
 			for j := 0; j < BoxY; j++ {
 				for i := 0; i < BoxX; i++ {
-					cells[n].y = bj*BoxY + j
-					cells[n].x = bi*BoxX + i
-					n++
+					cell := Point{y: bj*BoxY + j, x: bi*BoxX + i}
+					if !includeOccupied && scanner.game.board.CellOccupied(cell) {
+						continue
+					}
+					cells = append(cells, cell)
 				}
 			}
+			if len(cells) == 0 {
+				continue
+			}
+			Debug("Performing scan `%s' in box (%d, %d)", name, bi+1, bj+1)
 			if fn(scanner.game, cells) > 0 {
 				found++
 			}

@@ -157,6 +157,10 @@ func (b Board) ForEachCol(fn BoardWalker) {
 	}
 }
 
+func (b Board) CellOccupied(cell Point) bool {
+	return b[cell.y][cell.x] != 0
+}
+
 /*
  * Fix (place) a number (1...NR_MAX) in the board cell (y,x)
  */
@@ -302,8 +306,13 @@ func (game *Game) Solve() bool {
 			continue
 		}
 		Debug("Doing box/line reduction...")
-		if nr = scanner.ScanRowsCols(ScanBoxLineGroup, "box/line"); nr > 0 {
+		if nr = scanner.ScanRowsCols(ScanBoxLineGroup, "box/line", true); nr > 0 {
 			//print_board();
+			continue
+		}
+		Debug("Scanning for naked triples...")
+		if nr = scanner.ScanAllUnoccupiedGroups(ScanNakedTriplesGroup, "naked triples"); nr > 0 {
+			// print_board()
 			continue
 		}
 	}
