@@ -315,6 +315,11 @@ func (game *Game) Solve() bool {
 			// print_board()
 			continue
 		}
+		Debug("Scanning for naked quadruples...")
+		if nr = scanner.ScanAllUnoccupiedGroups(ScanNakedQuadGroup, "naked quadruples"); nr > 0 {
+			// print_board()
+			continue
+		}
 	}
 
 	if nr = game.CountUnsolved(); nr == 0 {

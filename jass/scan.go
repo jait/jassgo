@@ -246,8 +246,16 @@ func (scanner *Scanner) ScanSinglesBoxes() int {
 }
 
 func ScanNakedTriplesGroup(game *Game, cells []Point) int {
+	return ScanNakedSubsetGroup(game, cells, 3)
+}
+
+func ScanNakedQuadGroup(game *Game, cells []Point) int {
+	return ScanNakedSubsetGroup(game, cells, 4)
+}
+
+func ScanNakedSubsetGroup(game *Game, cells []Point, subsetLen int) int {
+
 	found := 0
-	subsetLen := 3
 
 	// 0: [cell1, cell2, cell3]
 	// 1: |cell1, cell2, cell4]
@@ -287,7 +295,7 @@ func ScanNakedTriplesGroup(game *Game, cells []Point) int {
 			}
 			for _, num := range cands {
 				if game.poss.Set(Num(cell.y), Num(cell.x), num, false) {
-					Debug("Naked triple: Eliminating %d from %s", num, cell.ToString1())
+					Debug("Naked %d: Eliminating %d from %s", subsetLen, num, cell.ToString1())
 					found++
 				}
 			}
@@ -305,10 +313,9 @@ func ScanNakedTriplesGroup(game *Game, cells []Point) int {
 			testCells = append(testCells, cells[i])
 		}
 		if len(cands) == subsetLen {
-			Debug("Naked triple %v in cells %v", cands, testCells)
+			Debug("Naked subset of %d %v in cells %v", subsetLen, cands, testCells)
 			eliminate(cands, c)
 		}
-		// cellGroups = append(cellGroups, cellComb)
 	})
 
 	return found
