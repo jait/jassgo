@@ -35,12 +35,23 @@ type Point struct {
 	y int
 }
 
+type PointSet []Point
+
 type Board [][]Num
 
 type Game struct {
 	board Board
 	poss  Poss
 	mode  int
+}
+
+func (set PointSet) Contains(point Point) bool {
+	for _, p := range set {
+		if p == point {
+			return true
+		}
+	}
+	return false
 }
 
 func (point Point) ToString() string {
@@ -167,12 +178,13 @@ func (b Board) CellOccupied(cell Point) bool {
 func (game *Game) Fix(y, x, val Num) {
 
 	var i, k Num
-	//Explain("Placing %d into (%d, %d)", val, x+1, y+1);
+	Explain("Placing %d into (%d, %d)", val, x+1, y+1)
 	if game.board[y][x] != 0 {
 		Info("Error: cell (%d,%d) already contains value %d", x+1, y+1, game.board[y][x])
 	}
 
 	game.board[y][x] = val
+	//game.board.Print()
 
 	/* no other possibilities for this cell */
 	for k = 1; k <= NR_MAX; k++ {
@@ -315,9 +327,19 @@ func (game *Game) Solve() bool {
 			// print_board()
 			continue
 		}
+		Debug("Scanning for hidden triples...")
+		if nr = scanner.ScanAllGroups(ScanHiddenTriplesGroup, "hidden triples"); nr > 0 {
+			// print_board();
+			continue
+		}
 		Debug("Scanning for naked quadruples...")
 		if nr = scanner.ScanAllUnoccupiedGroups(ScanNakedQuadGroup, "naked quadruples"); nr > 0 {
 			// print_board()
+			continue
+		}
+		Debug("Scanning for hidden quadruples...")
+		if nr = scanner.ScanAllGroups(ScanHiddenQuadGroup, "hidden quadruples"); nr > 0 {
+			// print_board();
 			continue
 		}
 	}

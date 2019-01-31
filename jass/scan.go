@@ -13,6 +13,33 @@ package jass
 
 type GroupScanFunc func(game *Game, cells []Point) int
 
+func containsInt(slice []int, a int) bool {
+	for _, i := range slice {
+		if i == a {
+			return true
+		}
+	}
+	return false
+}
+
+func comb(n, m int, emit func([]int)) {
+	s := make([]int, m)
+	last := m - 1
+	var rc func(int, int)
+	rc = func(i, next int) {
+		for j := next; j < n; j++ {
+			s[i] = j
+			if i == last {
+				emit(s)
+			} else {
+				rc(i+1, j+1)
+			}
+		}
+		return
+	}
+	rc(0, 0)
+}
+
 func getBox(y, x int) int {
 	return int(((y/BoxY)*(X/BoxX) + (x / BoxX)))
 }
@@ -263,24 +290,6 @@ func ScanNakedSubsetGroup(game *Game, cells []Point, subsetLen int) int {
 
 	nCells := len(cells)
 
-	comb := func(n, m int, emit func([]int)) {
-		s := make([]int, m)
-		last := m - 1
-		var rc func(int, int)
-		rc = func(i, next int) {
-			for j := next; j < n; j++ {
-				s[i] = j
-				if i == last {
-					emit(s)
-				} else {
-					rc(i+1, j+1)
-				}
-			}
-			return
-		}
-		rc(0, 0)
-	}
-
 	eliminate := func(cands CandidateSet, skipCells []int) {
 		for i, cell := range cells {
 			skip := false
@@ -302,12 +311,14 @@ func ScanNakedSubsetGroup(game *Game, cells []Point, subsetLen int) int {
 		}
 	}
 
+	// get subsetLen-sized combinations of all the cells in the group (indexes)
+	// = all 3 or 4 four cell combinations from the group
 	comb(nCells, subsetLen, func(c []int) {
-		//fmt.Println(c)
 		testCells := []Point{}
 		cands := CandidateSet{}
 		for i := range c {
 			cell := cells[i]
+			// form a union of the set of candidate numbers from the group of 3/4 cells
 			cellCands := game.poss.Candidates(Num(cell.y), Num(cell.x))
 			cands = cands.Add(cellCands)
 			testCells = append(testCells, cells[i])
@@ -526,6 +537,82 @@ func (scanner *Scanner) ScanBoxes(fn GroupScanFunc, name string, includeOccupied
 			}
 		}
 	}
+
+	return found
+}
+
+func ScanHiddenTriplesGroup(game *Game, cells []Point) int {
+	return ScanHiddenSubsetGroup(game, cells, 3)
+}
+
+func ScanHiddenQuadGroup(game *Game, cells []Point) int {
+	return ScanHiddenSubsetGroup(game, cells, 4)
+}
+
+func ScanHiddenSubsetGroup(game *Game, cells []Point, subsetLen int) int {
+	found := 0
+	nNums := NR_MAX // TODO: exclude already placed numbers from the combinations
+
+	eliminate := func(cells []Point, except []int) {
+		// eliminate all other candidates from these cells
+		for _, cell := range cells {
+			if game.board.CellOccupied(cell) {
+				continue
+			}
+			for num := Num(1); num < NR_MAX; num++ {
+				if containsInt(except, int(num)) {
+					continue
+				}
+				if game.poss.Set(Num(cell.y), Num(cell.x), num, false) {
+					Debug("Hidden subset of %d (%v): Eliminating %d from %s", subsetLen, except, num, cell.ToString1())
+					found++
+				}
+			}
+		}
+	}
+
+	comb(nNums, subsetLen, func(c []int) {
+		// find all the cells where at least one of the numbers is a candidate
+		candCells := PointSet{}
+		subset := make([]int, subsetLen)
+		candOccurrences := make([]bool, subsetLen)
+	Loop:
+		for i, num := range c {
+			num++ // c (combinations) starts from zero, poss wants 1...
+			subset[i] = num
+			for _, cell := range cells {
+				if game.board.CellOccupied(cell) {
+					continue
+				}
+				if game.poss.Get(Num(cell.y), Num(cell.x), Num(num)) {
+					//Debug("%d possible in cell %v, cands: %v ", num, cell, game.poss.Candidates(Num(cell.y), Num(cell.x)))
+					candOccurrences[i] = true
+					// add unique cells to candCells list
+					if !candCells.Contains(cell) {
+						candCells = append(candCells, cell)
+						if len(candCells) > subsetLen {
+							break Loop
+						}
+					}
+				}
+			}
+		}
+		// check that all candidates occur at least once
+		for _, occurs := range candOccurrences {
+			if !occurs {
+				return
+			}
+		}
+		// are there exactly 3/4 cells where these candidates exist?
+		if len(candCells) == subsetLen {
+			Debug("Hidden subset of %d (%v) in cells %v", subsetLen, subset, candCells)
+			// eliminate all other candidates from these cells
+			//	for _, cell := range candCells {
+			//		Debug("Candidates for cell %v: %v", cell, game.poss.Candidates(Num(cell.y), Num(cell.x)))
+			//	}
+			eliminate(candCells, subset)
+		}
+	})
 
 	return found
 }
