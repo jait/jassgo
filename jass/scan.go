@@ -1,10 +1,11 @@
-/* vim: set sts=4 sw=4 et: */
+/* vim: set sts=4 sw=4 ts=4 noet: */
 /**
  * jass - just another sudoku solver
- * (C) 2005-2007 Jari Tenhunen <jait@iki.fi>
+ * (C) 2005-2019 Jari Tenhunen <jait@iki.fi>
+ *
+ * Go version 2019
  *
  * TODO:
- * - naked triples/quads, hidden triples/quads
  * - X-Wing?
  *
  */
